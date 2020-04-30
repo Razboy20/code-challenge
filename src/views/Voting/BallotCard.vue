@@ -2,7 +2,8 @@
   <v-card
     class="ballot ballot-card"
     light
-    elevation="0"
+    :class="{ voted }"
+    :elevation="voted ? 5 : 0"
     @click="$emit('click')"
   >
     <div class="circle">
@@ -16,7 +17,12 @@
     </div>
 
     <v-btn elevation="0" color="cwhqBlue" block>See Code</v-btn>
-    <v-btn elevation="0" color="primary" block>Vote</v-btn>
+    <v-btn elevation="0" color="primary" class="votedBtn" block
+      >{{ voted ? "Voted" : "Vote"
+      }}<v-icon class="ml-2" v-if="voted"
+        >mdi-checkbox-marked-circle</v-icon
+      ></v-btn
+    >
   </v-card>
 </template>
 
@@ -37,13 +43,28 @@ export default {
   ],
   data() {
     return {
-      votes: this.numVotes
+      votes: this.numVotes,
+      voted: this.hasVoted ? true : false
     };
   },
   watch: {
     update() {
-      if (this.update.id == this.id) this.votes = this.update.numVotes;
+      if (this.update.id !== this.id) return;
+      this.votes = this.update.numVotes;
+      this.voted = this.update.hasVoted;
     }
   }
 };
 </script>
+
+<style lang="scss" scoped>
+.voted {
+  border-color: #a4deb0 !important;
+  .votedBtn {
+    background-color: #00a822 !important;
+  }
+  &:hover {
+    border-color: #6cee86 !important;
+  }
+}
+</style>

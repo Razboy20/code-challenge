@@ -136,6 +136,9 @@ export default {
     },
     numVotes() {
       this.votes = this.numVotes;
+    },
+    hasVoted() {
+      this.voted = this.hasVoted;
     }
   },
   methods: {
@@ -155,7 +158,7 @@ export default {
           this.votes--;
           this.voted = false;
         }
-        this.$emit("updateVotes", this.id, this.votes, this.hasVoted);
+        this.$emit("updateVotes", this.id, this.votes, this.voted);
       } catch (err) {
         this.errorMessage = err.message;
         this.showError = true;

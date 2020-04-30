@@ -81,6 +81,7 @@ export default {
       );
       if (index == -1) return;
       this.pageData.items[index].numVotes = this.update.numVotes;
+      this.pageData.items[index].hasVoted = this.update.hasVoted;
     }
   },
   methods: {
