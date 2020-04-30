@@ -23,10 +23,15 @@
         v-for="(item, i) in pageData.items"
         :key="i"
         v-bind="item"
+        v-bind:update="updateModal"
         @click="showCode(item)"
       />
     </v-row>
-    <code-modal v-bind="this.item" v-model="showModal" />
+    <code-modal
+      v-bind="this.item"
+      v-model="showModal"
+      @updateVotes="updateVotes"
+    />
   </v-container>
 </template>
 
@@ -41,8 +46,13 @@ export default {
     BallotCard,
     CodeModal
   },
+  props: ["update"],
   data() {
     return {
+      updateModal: {
+        id: 0,
+        numVotes: 0
+      },
       requestIndex: 0,
       requestCount: 0,
       showModal: false,
@@ -63,7 +73,25 @@ export default {
   mounted() {
     this.loadPage();
   },
+  watch: {
+    update() {
+      this.updateModal = this.update;
+      const index = this.pageData.items.findIndex(
+        item => item.id == this.update.id
+      );
+      if (index == -1) return;
+      this.pageData.items[index].numVotes = this.update.numVotes;
+    }
+  },
   methods: {
+    updateVotes(id, numVotes, voteStatus) {
+      this.updateModal = { id: id, numVotes: numVotes, hasVoted: voteStatus };
+      const index = this.pageData.items.findIndex(item => item.id == id);
+      if (index == -1) return;
+      this.pageData.items[index].numVotes = numVotes;
+      this.pageData.items[index].hasVoted = voteStatus;
+      this.$emit("updateVotes", id, numVotes, voteStatus);
+    },
     showCode(item) {
       this.item = item;
       this.showModal = true;

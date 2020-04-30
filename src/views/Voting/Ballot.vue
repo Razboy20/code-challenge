@@ -30,7 +30,11 @@
       <v-container>
         <v-row>
           <v-col>
-            <ballot-leaders v-model="totalEntries" />
+            <ballot-leaders
+              v-bind:update="updateModal"
+              @updateVotes="updateVotes"
+              v-model="totalEntries"
+            />
           </v-col>
         </v-row>
       </v-container>
@@ -115,6 +119,7 @@
             v-for="(item, i) in pageData.items"
             :key="i"
             v-bind="item"
+            v-bind:update="updateModal"
             @click="showCode(item)"
           />
         </v-row>
@@ -125,7 +130,11 @@
             circle
           ></v-pagination>
         </v-row>
-        <code-modal v-bind.sync="this.item" v-model="showModal" />
+        <code-modal
+          v-bind="this.item"
+          v-model="showModal"
+          @updateVotes="updateVotes"
+        />
       </v-container>
     </div>
     <div class="footer"></div>
@@ -151,6 +160,10 @@ export default {
   },
   data() {
     return {
+      updateModal: {
+        id: 0,
+        numVotes: 0
+      },
       loaded: false,
       totalEntries: "",
       requestIndex: 0,
@@ -172,6 +185,13 @@ export default {
     };
   },
   methods: {
+    updateVotes(id, numVotes, voteStatus) {
+      this.updateModal = { id: id, numVotes: numVotes, hasVoted: voteStatus };
+      const index = this.pageData.items.findIndex(item => item.id == id);
+      if (index == -1) return;
+      this.pageData.items[index].numVotes = numVotes;
+      this.pageData.items[index].hasVoted = voteStatus;
+    },
     showCode(item) {
       this.item = item;
       this.showModal = true;

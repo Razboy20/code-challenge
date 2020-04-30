@@ -12,7 +12,7 @@
       {{ username }}
     </div>
     <div class="vote-count">
-      {{ numVotes }} {{ numVotes.length == 1 ? "vote" : "votes" }}
+      {{ votes }} {{ votes == 1 ? "vote" : "votes" }}
     </div>
 
     <v-btn elevation="0" color="cwhqBlue" block>See Code</v-btn>
@@ -31,7 +31,19 @@ export default {
     "text",
     "username",
     "value",
-    "initials"
-  ]
+    "initials",
+    "update",
+    "hasVoted"
+  ],
+  data() {
+    return {
+      votes: this.numVotes
+    };
+  },
+  watch: {
+    update() {
+      if (this.update.id == this.id) this.votes = this.update.numVotes;
+    }
+  }
 };
 </script>

@@ -19,9 +19,6 @@ export default {
   watch: {
     loaded() {
       if (this.loaded && !this.isHidden) this.hide();
-    },
-    mounted() {
-      setTimeout(this.hide, 1000);
     }
   },
   methods: {
@@ -32,6 +29,9 @@ export default {
         this.isHidden = true;
       }, 200);
     }
+  },
+  mounted() {
+    setTimeout(this.hide, 1000);
   }
 };
 </script>

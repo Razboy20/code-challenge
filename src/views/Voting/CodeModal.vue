@@ -16,7 +16,7 @@
             <div class="username mb-1">
               {{ username }}
             </div>
-            <div class="votes"><span>Votes:</span> {{ numVotes }}</div>
+            <div class="votes"><span>Votes:</span> {{ votes }}</div>
             <hr />
             <v-form lazy-validation @submit.prevent="submit">
               <v-btn
@@ -59,21 +59,19 @@
 
 <script>
 import * as api from "@/api";
-import SuccessModal from "./SuccessModal";
 import { User } from "@/store";
 import "highlight.js/styles/darcula.css";
 
 export default {
-  components: {
-    SuccessModal
-  },
   data() {
     return {
       showSuccess: false,
       showError: false,
       errorMessage: "",
       isOpen: this.value,
-      isSubmitting: false
+      isSubmitting: false,
+      votes: this.numVotes,
+      voted: this.hasVoted
     };
   },
   computed: {
@@ -110,7 +108,7 @@ export default {
       return this.isPython ? "python" : "javascript";
     },
     voteText() {
-      return this.hasVoted ? "Revoke Vote" : "Vote";
+      return this.voted ? "Revoke Vote" : "Vote";
     }
   },
   props: [
@@ -135,6 +133,9 @@ export default {
       if (this.isOpen != this.value) {
         this.isOpen = this.value;
       }
+    },
+    numVotes() {
+      this.votes = this.numVotes;
     }
   },
   methods: {
@@ -145,15 +146,16 @@ export default {
       this.isSubmitting = true;
 
       try {
-        if (!this.hasVoted) {
+        if (!this.voted) {
           // await api.voting.vote(this.id);
-          this.numVotes++;
-          this.hasVoted = true;
+          this.votes++;
+          this.voted = true;
         } else {
           // await api.voting.unvote(this.id);
-          this.numVotes--;
-          this.hasVoted = false;
+          this.votes--;
+          this.voted = false;
         }
+        this.$emit("updateVotes", this.id, this.votes, this.hasVoted);
       } catch (err) {
         this.errorMessage = err.message;
         this.showError = true;
