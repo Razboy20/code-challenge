@@ -69,22 +69,19 @@ export default {
       this.showModal = true;
     },
     async setResult(result) {
-      await new Promise(resolve =>
-        setTimeout(async () => {
-          for (const [key, value] of Object.entries(result)) {
-            if (key !== "items") {
-              Vue.set(this.pageData, key, value);
-            }
-          }
-          const items = result.items.filter(i => i.disqualified === null).sort((a, b) => {
-            return a.numVotes < b.numVotes ? 1 : -1;
-          });
-          this.$emit("input", items.length);
-          items.splice(3, items.length - 3);
-          Vue.set(this.pageData, "items", items);
-          resolve();
-        }, 1000)
-      );
+      for (const [key, value] of Object.entries(result)) {
+        if (key !== "items") {
+          Vue.set(this.pageData, key, value);
+        }
+      }
+      const items = result.items
+        .filter(i => i.disqualified === null)
+        .sort((a, b) => {
+          return a.numVotes < b.numVotes ? 1 : -1;
+        });
+      this.$emit("input", items.length);
+      items.splice(3, items.length - 3);
+      Vue.set(this.pageData, "items", items);
     },
     async loadPage() {
       this.requestCount++;

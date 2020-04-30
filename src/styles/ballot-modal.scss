@@ -9,6 +9,18 @@
   width: fit-content;
   min-width: 1000px;
 
+  .username {
+    font-size: 32px;
+  }
+
+  .votes {
+    font-size: 20px;
+    span {
+      font-weight: bold;
+    }
+    margin-bottom: 12px;
+  }
+
   pre,
   code {
     width: 100% !important;

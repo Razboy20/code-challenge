@@ -1,5 +1,6 @@
 <template>
   <div>
+    <load-screen v-bind:loaded="this.loaded"></load-screen>
     <div class="image first pb-9">
       <v-container>
         <v-row class="content">
@@ -124,7 +125,7 @@
             circle
           ></v-pagination>
         </v-row>
-        <code-modal v-bind="this.item" v-model="showModal" />
+        <code-modal v-bind.sync="this.item" v-model="showModal" />
       </v-container>
     </div>
     <div class="footer"></div>
@@ -138,16 +139,19 @@ import BallotCard from "./BallotCard";
 import CodeModal from "./CodeModal";
 import SearchBar from "./SearchBar";
 import BallotLeaders from "./BallotLeaders";
+import LoadScreen from "./LoadScreen";
 
 export default {
   components: {
     BallotCard,
     CodeModal,
     SearchBar,
-    BallotLeaders
+    BallotLeaders,
+    LoadScreen
   },
   data() {
     return {
+      loaded: false,
       totalEntries: "",
       requestIndex: 0,
       requestCount: 0,
@@ -173,15 +177,10 @@ export default {
       this.showModal = true;
     },
     async setResult(result) {
-      await new Promise(resolve =>
-        setTimeout(async () => {
-          for (const [key, value] of Object.entries(result)) {
-            Vue.set(this.pageData, key, value);
-          }
-          await this.updateQueryParams();
-          resolve();
-        }, 1000)
-      );
+      for (const [key, value] of Object.entries(result)) {
+        Vue.set(this.pageData, key, value);
+      }
+      await this.updateQueryParams();
     },
     reload() {
       window.location = "/voting?page=1";
@@ -223,6 +222,7 @@ export default {
       try {
         const results = await voting.getBallot(this.pageData.page, this.per);
         await this.setResult(results);
+        this.loaded = true;
       } catch (err) {
         if (err.status === 404) {
           this.pageData.page = 1;
