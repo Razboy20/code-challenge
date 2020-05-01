@@ -14,7 +14,7 @@ function isChallengePending() {
 }
 
 function isChallengeClosed() {
-  return store.state.Quiz.quizHasEnded;
+  return true;
 }
 
 async function logout() {
@@ -33,9 +33,11 @@ const routes = [
         return;
       }
 
-      if (isChallengeClosed()) {
+      if (isChallengeClosed() && !!auth.currentUser().auth) {
         next({ name: "voting" });
         return;
+      } else {
+        next({ name: "login" });
       }
     }
   },
@@ -82,7 +84,7 @@ const routes = [
         path: "create-account",
         name: "register",
         component: () => {
-          return import("@/views/Accounts/Login");
+          return import("@/views/Accounts/Register");
         },
         meta: { anon: true, challengeOpenOrPending: true }
       },
@@ -111,6 +113,7 @@ const routes = [
     // voting routes
     path: "/",
     component: () => import("@/views/Voting/App"),
+    meta: { auth: true },
     children: [
       {
         path: "voting",

@@ -1,8 +1,10 @@
 from flask import Blueprint, jsonify, current_app, request, abort, render_template
+from flask_jwt_extended import (get_current_user, jwt_required)
 from flask_limiter.util import get_remote_address
 from flask_mail import Message
 from itsdangerous import URLSafeSerializer
 from sqlalchemy import or_, func
+import numpy as np
 
 from .. import core
 from ..limiter import limiter
@@ -30,6 +32,7 @@ def vote_check():
 
 
 @bp.route("/ballot", methods=["GET"])
+@jwt_required
 def get_contestants():
     """Contestants are only qualified if they answered
     the max rank question and the initial answer is correct"""
@@ -42,6 +45,7 @@ def get_contestants():
         return jsonify(status="error",
                        reason="invalid 'page' or 'per' parameter"), 400
 
+    user = get_current_user()
     q = Answer.query.with_entities(
         Answer.id,
         Answer.text,
@@ -50,7 +54,7 @@ def get_contestants():
         Users.studentlastname,
         Users.username,
         func.concat(Users.studentfirstname, func.right(Users.studentlastname, 1)),
-        Answer.disqualified
+        Answer.disqualified,
     ) \
         .join(Answer.question) \
         .join(Answer.user) \
@@ -64,34 +68,26 @@ def get_contestants():
         q = q.order_by(Answer.id)
 
     p = q.paginate(page=page, per_page=per)
+    itemList = []
+    for _ballot in p.items:
+        ballot = list(_ballot)
+        ballot.append(len(Vote.query.filter_by(answer_id=ballot[0], user_id=user.id).all()) > 0)
+        itemList.append(ballot)
 
     return jsonify(
-        items=p.items,
+        items=itemList,
         totalItems=p.total,
         page=p.page,
         totalPages=p.pages,
         hasNext=p.has_next,
         nextNum=p.next_num,
         hasPrev=p.has_prev,
-        prevNum=p.prev_num
+        prevNum=p.prev_num,
+        totalVotes=len(Vote.query.filter_by(user_id=user.id).all())
     )
 
-
-def normalize_email(email):
-
-    local, domain = email.rsplit("@")
-
-    if domain == "gmail.com":
-        local = local.replace(".", "")
-
-    if "+" in local:
-        local = local.split("+")[0]
-
-    return local + "@" + domain
-
-
-@bp.route("/<int:answer_id>/cast", methods=["POST"])
-@limiter.limit("4 per day", key_func=get_remote_address)
+@bp.route("/<int:answer_id>/castvote", methods=["POST"])
+@jwt_required
 def vote_cast(answer_id: int):
     """Cast a vote on an Answer"""
     max_rank = core.max_rank()
@@ -109,62 +105,63 @@ def vote_cast(answer_id: int):
 
     if ans is None:
         return jsonify(status="error",
-                       reason="qualifying answer not found"), 400
+                       reason="Qualifying answer not found"), 400
+
+    user = get_current_user()
 
     v = Vote()
-    v.confirmed = False
     v.answer_id = ans.id
-
-    try:
-        v.voter_email = normalize_email(request.json["email"])
-    except (TypeError, KeyError, ValueError):
-        return jsonify(status="error",
-                       message="no student email defined. an 'email' property "
-                               "is required on the JSON body."), 400
-
-    if v.voter_email is None or v.voter_email == "":
-        return jsonify(status="error",
-                       reason="voter email required"), 400
+    v.user_id = user.id
 
     # see if you already voted for this
-    if Vote.query.filter_by(answer_id=answer_id, voter_email=v.voter_email).all():
+    if Vote.query.filter_by(answer_id=answer_id, user_id=user.id).all():
         return jsonify(status="error",
-                       reason="you already voted for this one."), 400
-
-    try:
-        mg_res = mg_validate(v.voter_email)
-    except:
+                       reason="You already voted for this answer."), 400
+    if len(Vote.query.filter_by(user_id=user.id).all()) > 2:
         return jsonify(status="error",
-                       reason="That email address doesn't pass our validation check.")
-
-    validation = mg_res.json()
-
-    if validation["risk"] in ("high", "medium"):
-        return jsonify(status="error",
-                       reason="refusing to allow vote: that email is rated as high risk"), 400
-
-    if validation["result"] in ("undeliverable", "unknown"):
-        return jsonify(status="error",
-                       reason="we can't deliver email to that address"), 400
-
+                       reason="You can only vote for a max of 3 people!"), 400
     db.session.add(v)
     db.session.commit()
 
-    # only used if the user is not logged in
-    s = URLSafeSerializer(current_app.config["SECRET_KEY"])
-    tok = s.dumps(v.id, "vote-confirmation")
-
-    msg = Message(subject="Vote Confirmation",
-                  recipients=[v.voter_email])
-    msg.html = render_template("challenge_vote_confirm.html", token=tok)
-
-    if current_app.config.get("TESTING", False):
-        msg.extra_headers = {"X-Vote-Confirmation-Token": tok}
-
-    mail.send(msg)
 
     return jsonify(status="success",
-                   reason="email confirmation needed")
+                   reason="You have voted!")
+
+@bp.route("/<int:answer_id>/castunvote", methods=["POST"])
+@jwt_required
+def unvote_cast(answer_id: int):
+    """Revoke a vote on an Answer"""
+    max_rank = core.max_rank()
+
+    ans = Answer.query \
+        .join(Answer.question) \
+        .filter(Answer.id == answer_id,
+                Question.rank == max_rank,
+                Answer.correct) \
+        .first()
+
+    if ans.disqualified is not None:
+        return jsonify(status="error",
+                       reason=f"This user was disqualified: {ans.disqualified}"), 400
+
+    if ans is None:
+        return jsonify(status="error",
+                       reason="Qualifying answer not found"), 400
+
+    user = get_current_user()
+
+    # see if you already voted for this
+    if len(Vote.query.filter_by(answer_id=answer_id, user_id=user.id).all()) == 0:
+        return jsonify(status="error",
+                       reason="You have not voted for this answer."), 400
+
+    v = Vote.query.filter_by(answer_id=answer_id, user_id=user.id).first()
+    db.session.delete(v)
+    db.session.commit()
+
+
+    return jsonify(status="success",
+                   reason="You have revoked your vote!")
 
 
 @bp.route("/confirm", methods=["POST"])
@@ -221,6 +218,7 @@ def vote_confirm():
 
 
 @bp.route("/search", methods=["GET"])
+@jwt_required
 def search():
     keyword = request.args.get("q")
     try:
@@ -234,6 +232,8 @@ def search():
         return jsonify(status="error", reason="missing 'q' parameter"), 400
 
     keyword = f"%{keyword}%"
+
+    user = get_current_user()
 
     p = Answer.query.with_entities(
         Answer.id,
@@ -253,8 +253,13 @@ def search():
         .group_by(Answer.id)\
         .paginate(page=page, per_page=per)
 
+    itemList = []
+    for _ballot in p.items:
+        ballot = list(_ballot)
+        ballot.append(len(Vote.query.filter_by(answer_id=ballot[0], user_id=user.id).all()) > 0)
+        itemList.append(ballot)
     return jsonify(
-        items=p.items,
+        items=itemList,
         totalItems=p.total,
         page=p.page,
         totalPages=p.pages,

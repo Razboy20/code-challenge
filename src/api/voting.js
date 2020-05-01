@@ -13,6 +13,7 @@ function processBallotResponse(result) {
         username: item[5],
         displayName: item[6],
         disqualified: item[7],
+        hasVoted: item[8],
         ...{ initials: initials(item) }
       };
     });
@@ -55,8 +56,11 @@ async function getBallot(page, per) {
   );
 }
 
-async function cast(answerId, email) {
-  return request(routes.voting_cast(answerId), { data: { email } });
+async function vote(answerId) {
+  return request(routes.vote_cast(answerId));
+}
+async function unvote(answerId) {
+  return request(routes.unvote_cast(answerId));
 }
 
 async function confirm(token) {
@@ -73,7 +77,8 @@ async function search(text, page, per) {
 }
 export default {
   getBallot,
-  cast,
+  vote,
+  unvote,
   confirm,
   search
 };

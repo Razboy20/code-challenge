@@ -147,23 +147,30 @@ export default {
         return;
       }
       this.isSubmitting = true;
-
-      try {
-        if (!this.voted) {
-          // await api.voting.vote(this.id);
-          this.votes++;
-          this.voted = true;
-        } else {
-          // await api.voting.unvote(this.id);
-          this.votes--;
-          this.voted = false;
+      if (this.$store.state.User.voteCount < 3 || this.voted) {
+        try {
+          if (!this.voted) {
+            await api.voting.vote(this.id);
+            this.$store.dispatch("User/vote");
+            this.votes++;
+            this.voted = true;
+          } else {
+            await api.voting.unvote(this.id);
+            this.$store.dispatch("User/unvote");
+            this.votes--;
+            this.voted = false;
+          }
+          this.$emit("updateVotes", this.id, this.votes, this.voted);
+        } catch (err) {
+          this.errorMessage = err.message;
+          this.showError = true;
         }
-        this.$emit("updateVotes", this.id, this.votes, this.voted);
-      } catch (err) {
-        this.errorMessage = err.message;
+        this.isSubmitting = false;
+      } else {
+        this.errorMessage = "You can only vote for a max of 3 people!";
         this.showError = true;
+        this.isSubmitting = false;
       }
-      this.isSubmitting = false;
     }
   }
 };

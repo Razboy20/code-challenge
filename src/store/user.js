@@ -12,7 +12,8 @@ function getDefaultState() {
     email: "",
     displayName: "",
     rank: 0,
-    isAuthorized: false
+    isAuthorized: false,
+    voteCount: 0
   };
 }
 
@@ -29,11 +30,29 @@ const actions = {
     } else {
       commit("clear", user);
     }
+  },
+  vote({ commit }) {
+    commit("vote");
+  },
+  unvote({ commit }) {
+    commit("unvote");
+  },
+  setnumvotes({ commit }, numVotes) {
+    commit("setnumvotes", numVotes);
   }
 };
 
 const mutations = {
-  set(state, user) {
+  vote(state) {
+    state.voteCount++;
+  },
+  unvote(state) {
+    state.voteCount--;
+  },
+  setnumvotes(state, numVotes) {
+    state.voteCount = numVotes;
+  },
+  setvotes(state, user) {
     for (const [key, value] of Object.entries(user)) {
       Vue.set(state, key, value);
     }

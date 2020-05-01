@@ -63,7 +63,7 @@
       </v-container>
     </div>
     <div class="pt-4 pb-12">
-      <v-container>
+      <v-container style="min-height:850px">
         <v-row>
           <v-col>
             <h2 class="ballot-header mt-8 mb-8">
@@ -242,6 +242,7 @@ export default {
       try {
         const results = await voting.getBallot(this.pageData.page, this.per);
         await this.setResult(results);
+        this.$store.dispatch("User/setnumvotes", results.totalVotes);
         this.loaded = true;
       } catch (err) {
         if (err.status === 404) {

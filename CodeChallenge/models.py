@@ -75,15 +75,15 @@ class Vote(db.Model):
     answer_id = db.Column(db.Integer,
                           db.ForeignKey("answer.id", ondelete="cascade"),
                           nullable=False)
+    user_id = db.Column(db.Integer,
+                        db.ForeignKey("users.id", ondelete="cascade"))
     answer = db.relationship("Answer", lazy=True, uselist=False)
-    voter_email = db.Column(db.String(255), nullable=False)
-    confirmed = db.Column(db.Boolean, nullable=False, default=False)
+    user = db.relationship("Users", lazy=True, uselist=False)
 
     @staticmethod
-    def existing_vote(email: str) -> bool:
-        v = Vote.query.filter_by(voter_email=email).first()
+    def existing_vote(userid: int) -> bool:
+        v = Vote.query.filter_by(user_id=userid).first()
         return v
 
     def ranking(self):
         return ranking(self.answer.id)
-

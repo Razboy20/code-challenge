@@ -26,8 +26,11 @@ export default {
   questions_api_next_question: route("/api/v1/questions/next", "GET"),
   voting_check: route("/api/v1/vote/check", "GET"),
   voting_ballot: route("/api/v1/vote/ballot", "GET"),
-  voting_cast: id => {
-    return route(`/api/v1/vote/${id}/cast`, "POST");
+  vote_cast: id => {
+    return route(`/api/v1/vote/${id}/castvote`, "POST");
+  },
+  unvote_cast: id => {
+    return route(`/api/v1/vote/${id}/castunvote`, "POST");
   },
   voting_confirm: route("/api/v1/vote/confirm", "POST"),
   voting_ballot_search: route("/api/v1/vote/search", "GET")
